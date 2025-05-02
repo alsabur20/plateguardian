@@ -11,7 +11,7 @@ from logging.handlers import RotatingFileHandler
 from config import ApplicationConfig
 from models import db, User
 from utils.model_utils import extract_license_plate_text
-from utils.auth_utils import login_required
+from utils.auth_utils import login_required, api_key_required
 
 
 app = Flask(__name__)
@@ -23,6 +23,7 @@ server_session = Session(app)
 db.init_app(app)
 
 with app.app_context():
+    # db.drop_all() only use once after making changes to the database schema
     db.create_all()
 
 
@@ -41,6 +42,7 @@ app.logger.addHandler(handler)
 
 @app.route("/ocr", methods=["POST"])
 @cross_origin()
+@api_key_required
 @login_required
 def ocr_license_plate():
     app.logger.info("OCR request received from IP: %s", request.remote_addr)
@@ -102,13 +104,20 @@ def register():
         return jsonify({"error": "User already exists"}), 409
 
     new_user = User(email=email, password=bcrypt.generate_password_hash(password))
+    new_user.generate_api_key()
+
     db.session.add(new_user)
     db.session.commit()
 
     session["user_id"] = new_user.id
     app.logger.info("New user registered: %s (id: %s)", email, new_user.id)
 
-    return jsonify({"id": new_user.id, "email": new_user.email}), 201
+    return (
+        jsonify(
+            {"id": new_user.id, "email": new_user.email, "api_key": new_user.api_key}
+        ),
+        201,
+    )
 
 
 @cross_origin()
