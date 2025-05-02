@@ -154,3 +154,11 @@ def handle_exception(e):
 
 if __name__ == "__main__":
     app.run(debug=True)
+
+    # For production use
+    # from gevent import pywsgi
+
+    # http_server = pywsgi.WSGIServer(
+    #     ("0.0.0.0", 443), app, keyfile="server.key", certfile="server.crt"
+    # )
+    # http_server.serve_forever()

@@ -174,3 +174,5 @@ cython_debug/
 .pypirc
 
 server/temp_uploads
+*.crt
+*.key
