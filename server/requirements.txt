@@ -5,3 +5,8 @@ python-dotenv
 flask-session
 redis
 flask-cors
+opencv-python
+scikit-image
+scikit-learn
+joblib
+numpy
