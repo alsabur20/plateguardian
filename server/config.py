@@ -21,7 +21,6 @@ class ApplicationConfig:
     SESSION_PERMANENT = False
     SESSION_USE_SIGNER = True
     SESSION_REDIS = redis.from_url("redis://127.0.0.1:6379")  # Redis server URL
-    
+
     SESSION_COOKIE_SAMESITE = "Lax"
     SESSION_COOKIE_SECURE = False  # True in production over HTTPS
-
