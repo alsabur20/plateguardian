@@ -4,6 +4,9 @@ import {
   Route,
   Navigate,
 } from "react-router-dom";
+import { ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+
 import HomePage from "./pages/HomePage";
 import LoginPage from "./pages/auth/LoginPage";
 import SignupPage from "./pages/auth/SignupPage";
@@ -18,6 +21,7 @@ function App() {
     <ThemeProvider>
       <AuthProvider>
         <Router>
+          <ToastContainer position="top-right" autoClose={3000} />
           <Routes>
             <Route path="/" element={<Layout />}>
               <Route index element={<Navigate to="/login" replace />} />

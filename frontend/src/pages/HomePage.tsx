@@ -1,11 +1,11 @@
-import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
-import { History } from 'lucide-react';
-import { PlateResult } from '../types';
-import ImageUploader from '../components/plate/ImageUploader';
-import ResultCard from '../components/plate/ResultCard';
-import { recognizePlate, getPlateHistory } from '../services/plateService';
-import { toast } from 'react-toastify';
+import React, { useState, useEffect } from "react";
+import { motion } from "framer-motion";
+import { History } from "lucide-react";
+import { PlateResult } from "../types";
+import ImageUploader from "../components/plate/ImageUploader";
+import ResultCard from "../components/plate/ResultCard";
+import { recognizePlate, getPlateHistory } from "../services/plateService";
+import { toast } from "react-toastify";
 
 const HomePage: React.FC = () => {
   const [isProcessing, setIsProcessing] = useState(false);
@@ -13,7 +13,6 @@ const HomePage: React.FC = () => {
   const [history, setHistory] = useState<PlateResult[]>([]);
   const [showHistory, setShowHistory] = useState(false);
 
-  // Fetch user's plate recognition history
   useEffect(() => {
     const fetchHistory = async () => {
       const response = await getPlateHistory();
@@ -27,14 +26,12 @@ const HomePage: React.FC = () => {
 
   const handleImageUpload = async (file: File) => {
     setIsProcessing(true);
-    
+
     try {
-      // Process the image
       const response = await recognizePlate(file);
-      
+
       if (response.success && response.data) {
         setResult(response.data);
-        // Add to history if not already there
         setHistory((prev) => {
           if (!prev.find((item) => item.id === response.data!.id)) {
             return [response.data!, ...prev];
@@ -42,10 +39,10 @@ const HomePage: React.FC = () => {
           return prev;
         });
       } else {
-        toast.error(response.error || 'Failed to process image');
+        toast.error(response.error || "Failed to process image");
       }
     } catch (error) {
-      toast.error('An error occurred while processing the image');
+      toast.error("An error occurred while processing the image");
     } finally {
       setIsProcessing(false);
     }
@@ -59,7 +56,7 @@ const HomePage: React.FC = () => {
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="mb-8 text-center">
-        <motion.h1 
+        <motion.h1
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
@@ -73,8 +70,8 @@ const HomePage: React.FC = () => {
           transition={{ duration: 0.5, delay: 0.2 }}
           className="text-gray-600 dark:text-gray-400 max-w-2xl mx-auto"
         >
-          Upload an image containing a license plate, and we'll extract the text for you.
-          Get accurate results in seconds.
+          Upload an image containing a license plate, and we'll extract the text
+          for you. Get accurate results in seconds.
         </motion.p>
       </div>
 
@@ -84,14 +81,14 @@ const HomePage: React.FC = () => {
           className="inline-flex items-center text-gray-700 dark:text-gray-300 hover:text-primary dark:hover:text-primary"
         >
           <History size={18} className="mr-1" />
-          {showHistory ? 'Hide History' : 'View History'}
+          {showHistory ? "Hide History" : "View History"}
         </button>
       </div>
 
       {showHistory && history.length > 0 && (
         <motion.div
           initial={{ opacity: 0, height: 0 }}
-          animate={{ opacity: 1, height: 'auto' }}
+          animate={{ opacity: 1, height: "auto" }}
           exit={{ opacity: 0, height: 0 }}
           transition={{ duration: 0.3 }}
           className="mb-8 overflow-hidden"
@@ -127,7 +124,10 @@ const HomePage: React.FC = () => {
         </motion.div>
       )}
 
-      <ImageUploader onImageUpload={handleImageUpload} isLoading={isProcessing} />
+      <ImageUploader
+        onImageUpload={handleImageUpload}
+        isLoading={isProcessing}
+      />
 
       {result && !isProcessing && (
         <ResultCard
