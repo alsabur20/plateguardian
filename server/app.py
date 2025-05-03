@@ -12,7 +12,7 @@ import base64
 from config import ApplicationConfig
 from models import db, User, OCRHistory
 from utils.model_utils import extract_license_plate_text
-from utils.auth_utils import login_required, api_key_required
+from utils.auth_utils import login_required
 from utils.rsa_utils import (
     load_server_private_key,
     load_server_public_key,
@@ -54,14 +54,17 @@ CLIENT_KEYS = {}
 def register():
     email = request.json.get("email")
     password = request.json.get("password")
+    app.logger.info(f"Attempting to register user: {email}")
 
     if User.query.filter_by(email=email).first():
+        app.logger.warning(f"Registration failed. User already exists: {email}")
         return jsonify({"error": "User already exists"}), 409
 
     new_user = User(email=email, password=bcrypt.generate_password_hash(password))
     new_user.generate_api_key()
     db.session.add(new_user)
     db.session.commit()
+    app.logger.info(f"User registered successfully: {email} (ID: {new_user.id})")
 
     session["user_id"] = new_user.id
     return (
@@ -81,6 +84,8 @@ def register():
 def login():
     email = request.json.get("email")
     password = request.json.get("password")
+    app.logger.info(f"Login attempt for user: {email}")
+
     user = User.query.filter_by(email=email).first()
 
     if user and bcrypt.check_password_hash(user.password, password):
@@ -90,6 +95,8 @@ def login():
         server_pub_key = load_server_public_key()
         session["server_pub_key"] = serialize_public_key(server_pub_key)
 
+        app.logger.info(f"User logged in: {email} (ID: {user.id})")
+
         return (
             jsonify(
                 {"id": user.id, "email": user.email, "sKey": session["server_pub_key"]}
@@ -97,6 +104,7 @@ def login():
             200,
         )
 
+    app.logger.warning(f"Unauthorized login attempt: {email}")
     return jsonify({"error": "Unauthorized"}), 401
 
 
@@ -105,13 +113,16 @@ def login():
 @login_required
 def receive_user_pub_key():
     pem_public_key = request.json.get("client_public_key")
+    user_id = session["user_id"]
 
     if not pem_public_key:
+        app.logger.error(f"User {user_id}: Missing client public key")
         return jsonify({"error": "Missing public key"}), 400
 
     try:
         client_pub_key = deserialize_public_key(pem_public_key)
-        CLIENT_KEYS[session["user_id"]] = client_pub_key
+        CLIENT_KEYS[user_id] = client_pub_key
+        app.logger.info(f"Public key stored for user: {user_id}")
         return jsonify({"message": "Public key received and stored"}), 200
     except Exception as e:
         app.logger.error(f"Failed to deserialize public key: {e}")
@@ -123,10 +134,13 @@ def receive_user_pub_key():
 @login_required
 def get_encrypted_api_key():
     user_id = session["user_id"]
+    app.logger.info(f"User {user_id} requested encrypted API key")
+
     user = User.query.get(user_id)
     client_pub_key = CLIENT_KEYS.get(user_id)
 
     if not client_pub_key:
+        app.logger.warning(f"User {user_id} has no client public key registered")
         return jsonify({"error": "No client key registered"}), 400
 
     # Timestamp with expiry
@@ -136,15 +150,16 @@ def get_encrypted_api_key():
     encrypted = encrypt_with_public_key(client_pub_key, payload)
     encrypted_b64 = base64.b64encode(encrypted).decode("utf-8")
 
+    app.logger.info(f"API key encrypted and returned to user: {user_id}")
     return jsonify({"encrypted_api_key": encrypted_b64}), 200
 
 
 @cross_origin()
 @app.route("/ocr", methods=["POST"])
-@api_key_required
 @login_required
 def ocr_license_plate():
     if "image" not in request.files or "encrypted_api_key" not in request.form:
+        app.logger.warning("OCR attempt with missing data.")
         return jsonify({"error": "Missing image or API key"}), 400
 
     encrypted_key = base64.b64decode(request.form["encrypted_api_key"])
@@ -155,13 +170,21 @@ def ocr_license_plate():
         api_key_str, timestamp_str = decrypted.decode("utf-8").split("|")
 
         timestamp = datetime.fromisoformat(timestamp_str)
+
+        app.logger.info(f"Decrypted API key timestamp: {timestamp_str}")
+
         if datetime.utcnow() - timestamp > timedelta(minutes=1):
+            app.logger.warning(f"API key expired | Provided: {timestamp_str}")
             return jsonify({"error": "API key expired"}), 403
 
         user = User.query.get(session["user_id"])
         if user.api_key != api_key_str:
+            app.logger.warning(
+                f"API key mismatch | Expected: {user.api_key[:5]}..., Got: {api_key_str[:5]}..."
+            )
             return jsonify({"error": "Invalid API key"}), 403
-    except Exception:
+    except Exception as e:
+        app.logger.error(f"Decryption/Validation failed: {str(e)}")
         return jsonify({"error": "Invalid API key or format"}), 403
 
     # Save image and process OCR
@@ -170,9 +193,11 @@ def ocr_license_plate():
     filepath = os.path.join("temp_uploads", filename)
     os.makedirs("temp_uploads", exist_ok=True)
     file.save(filepath)
+    app.logger.info(f"Image uploaded: {filename} by user {user.email}")
 
     try:
         extracted_text = extract_license_plate_text(filepath)
+        app.logger.info(f"OCR result: {extracted_text}")
         db.session.add(
             OCRHistory(
                 user_id=session["user_id"],
@@ -189,8 +214,13 @@ def ocr_license_plate():
 
 @cross_origin()
 @app.route("/logout", methods=["POST"])
+@login_required
 def logout():
-    session.pop("user_id", None)
+    user_id = session.pop("user_id", None)
+    if user_id:
+        app.logger.info(f"User {user_id} logged out successfully")
+    else:
+        app.logger.warning("Logout attempt without active session")
     return jsonify({"message": "Logged out successfully"}), 200
 
 
@@ -207,6 +237,7 @@ def get_current_user():
 @login_required
 def get_ocr_history():
     user_id = session["user_id"]
+    app.logger.info(f"Fetching OCR history for user: {user_id}")
     history = (
         OCRHistory.query.filter_by(user_id=user_id)
         .order_by(OCRHistory.timestamp.desc())
