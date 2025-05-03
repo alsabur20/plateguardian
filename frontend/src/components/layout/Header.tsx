@@ -10,7 +10,7 @@ import { motion } from "framer-motion";
 // import { ThemeContextType } from "../../contexts/ThemeContext";
 
 const Header: React.FC = () => {
-  const { isAuthenticated, logout, user } = useAuth();
+  const { isAuthenticated, logout, user, sPublicKey } = useAuth();
 
   // const context = useContext<ThemeContextType | undefined>(ThemeContext);
   // const theme = context?.theme;

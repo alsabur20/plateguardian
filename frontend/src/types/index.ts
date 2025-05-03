@@ -1,7 +1,10 @@
 export interface User {
   id: string;
   email: string;
-  name?: string;
+  keyPair: {
+    publicKey: string;
+    privateKey: string;
+  };
 }
 
 export interface AuthState {

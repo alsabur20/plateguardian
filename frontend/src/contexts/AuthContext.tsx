@@ -11,6 +11,7 @@ import {
   registerUser,
   logoutUser,
   getCurrentUser,
+  sendClientPublicKeyToServer,
 } from "../services/authService";
 import { toast } from "react-toastify";
 
@@ -38,11 +39,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     const fetchUser = async () => {
       const response = await getCurrentUser();
       if (response.success && response.data?.user) {
-        setAuthState({
-          user: response.data.user,
-          sPublicKey: response.data.sKey,
-          isAuthenticated: true,
-          isLoading: false,
+        setAuthState((prev) => {
+          return {
+            ...prev,
+            user: response.data.user,
+            isAuthenticated: true,
+            isLoading: false,
+          };
         });
       } else {
         setAuthState({
@@ -64,8 +67,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         user: response.data,
         isAuthenticated: true,
         isLoading: false,
-        sPublicKey: "",
+        sPublicKey: response.data.sKey,
       });
+      await getKeyPair();
       toast.success("Login successful");
       return true;
     } else {
@@ -81,8 +85,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         user: response.data,
         isAuthenticated: true,
         isLoading: false,
-        sPublicKey: "",
+        sPublicKey: response.data.sKey,
       });
+      await getKeyPair();
       toast.success("Registration successful");
       return true;
     } else {
@@ -100,6 +105,36 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       sPublicKey: "",
     });
     toast.success("Logged out successfully");
+  };
+
+  const getKeyPair = async () => {
+    if (authState.sPublicKey) {
+      const response = await sendClientPublicKeyToServer(authState.sPublicKey);
+
+      if (response.success && response.data && response.clientKeyPair) {
+        setAuthState((prev) => ({
+          ...prev,
+          user: prev.user
+            ? {
+                ...prev.user,
+                keyPair: {
+                  publicKey: response.clientKeyPair.publicKeyPEM,
+                  privateKey: response.clientKeyPair.privateKeyPEM,
+                },
+              }
+            : {
+                id: "",
+                email: "",
+                keyPair: {
+                  publicKey: response.clientKeyPair.publicKeyPEM,
+                  privateKey: response.clientKeyPair.privateKeyPEM,
+                },
+              },
+        }));
+      } else {
+        console.error("Failed to send key to server or receive keypair");
+      }
+    }
   };
 
   return (
