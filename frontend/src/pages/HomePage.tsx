@@ -15,14 +15,13 @@ const HomePage: React.FC = () => {
   const [showHistory, setShowHistory] = useState(false);
 
   useEffect(() => {
-    const fetchHistory = async () => {
-      const response = await getPlateHistory();
-      if (response.success && response.data) {
-        setHistory(response.data);
-      }
-    };
-
-    fetchHistory();
+    // const fetchHistory = async () => {
+    //   const response = await getPlateHistory();
+    //   if (response.success && response.data) {
+    //     setHistory(response.data);
+    //   }
+    // };
+    // fetchHistory();
   }, []);
 
   const handleImageUpload = async (file: File) => {
