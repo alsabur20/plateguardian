@@ -49,8 +49,8 @@ CLIENT_KEYS = {}
 # === Routes ===
 
 
-@app.route("/register", methods=["POST"])
 @cross_origin()
+@app.route("/register", methods=["POST"])
 def register():
     email = request.json.get("email")
     password = request.json.get("password")
@@ -67,8 +67,8 @@ def register():
     return jsonify({"id": new_user.id, "email": new_user.email}), 201
 
 
-@app.route("/login", methods=["POST"])
 @cross_origin()
+@app.route("/login", methods=["POST"])
 def login():
     email = request.json.get("email")
     password = request.json.get("password")
@@ -86,29 +86,26 @@ def login():
     return jsonify({"error": "Unauthorized"}), 401
 
 
-@app.route("/key-exchange", methods=["POST"])
 @cross_origin()
+@app.route("/key-exchange", methods=["POST"])
 @login_required
 def receive_user_pub_key():
-    encrypted_pub_key_b64 = request.json.get("encrypted_key")
-    if not encrypted_pub_key_b64:
-        return jsonify({"error": "Missing encrypted key"}), 400
+    pem_public_key = request.json.get("public_key")
 
-    server_private_key = load_server_private_key()
-    encrypted_pub_key = base64.b64decode(encrypted_pub_key_b64)
-    decrypted_pub_key_bytes = decrypt_with_private_key_bytes(
-        server_private_key, encrypted_pub_key
-    )
+    if not pem_public_key:
+        return jsonify({"error": "Missing public key"}), 400
 
-    # Save temporarily
-    user_id = session["user_id"]
-    CLIENT_KEYS[user_id] = deserialize_public_key(decrypted_pub_key_bytes)
-
-    return jsonify({"message": "Public key received and stored"}), 200
+    try:
+        client_pub_key = deserialize_public_key(pem_public_key)
+        CLIENT_KEYS[session["user_id"]] = client_pub_key
+        return jsonify({"message": "Public key received and stored"}), 200
+    except Exception as e:
+        app.logger.error(f"Failed to deserialize public key: {e}")
+        return jsonify({"error": "Invalid public key format"}), 400
 
 
-@app.route("/api-key", methods=["GET"])
 @cross_origin()
+@app.route("/api-key", methods=["GET"])
 @login_required
 def get_encrypted_api_key():
     user_id = session["user_id"]
@@ -128,8 +125,8 @@ def get_encrypted_api_key():
     return jsonify({"encrypted_api_key": encrypted_b64}), 200
 
 
-@app.route("/ocr", methods=["POST"])
 @cross_origin()
+@app.route("/ocr", methods=["POST"])
 @api_key_required
 @login_required
 def ocr_license_plate():
@@ -176,23 +173,23 @@ def ocr_license_plate():
             os.remove(filepath)
 
 
-@app.route("/logout", methods=["POST"])
 @cross_origin()
+@app.route("/logout", methods=["POST"])
 def logout():
     session.pop("user_id", None)
     return jsonify({"message": "Logged out successfully"}), 200
 
 
-@app.route("/@me", methods=["GET"])
 @cross_origin()
+@app.route("/@me", methods=["GET"])
 @login_required
 def get_current_user():
     user = User.query.get(session["user_id"])
     return jsonify({"id": user.id, "email": user.email}), 200
 
 
-@app.route("/history", methods=["GET"])
 @cross_origin()
+@app.route("/history", methods=["GET"])
 @login_required
 def get_ocr_history():
     user_id = session["user_id"]
