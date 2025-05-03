@@ -9,7 +9,7 @@ from logging.handlers import RotatingFileHandler
 
 
 from config import ApplicationConfig
-from models import db, User
+from models import db, User, OCRHistory
 from utils.model_utils import extract_license_plate_text
 from utils.auth_utils import login_required, api_key_required
 
@@ -23,7 +23,7 @@ server_session = Session(app)
 db.init_app(app)
 
 with app.app_context():
-    # db.drop_all() only use once after making changes to the database schema
+    # db.drop_all()  # only use once after making changes to the database schema
     db.create_all()
 
 
@@ -38,6 +38,32 @@ handler.setFormatter(formatter)
 
 app.logger.setLevel(logging.INFO)
 app.logger.addHandler(handler)
+
+
+@cross_origin()
+@app.route("/history", methods=["GET"])
+@login_required
+def get_ocr_history():
+    user_id = session["user_id"]
+    history = (
+        OCRHistory.query.filter_by(user_id=user_id)
+        .order_by(OCRHistory.timestamp.desc())
+        .all()
+    )
+
+    data = [
+        {
+            "image_name": h.image_name,
+            "extracted_text": h.extracted_text,
+            "timestamp": h.timestamp.isoformat(),
+        }
+        for h in history
+    ]
+
+    app.logger.info(
+        "OCR history fetched for user_id: %s (%d records)", user_id, len(data)
+    )
+    return jsonify(data), 200
 
 
 @app.route("/ocr", methods=["POST"])
@@ -61,6 +87,15 @@ def ocr_license_plate():
     try:
         extracted_text = extract_license_plate_text(filepath)
         app.logger.info("OCR success for file: %s", filename)
+
+        # Store history
+        user_id = session.get("user_id")
+        history_entry = OCRHistory(
+            user_id=user_id, image_name=filename, extracted_text=extracted_text
+        )
+        db.session.add(history_entry)
+        db.session.commit()
+
         return jsonify({"extracted_text": extracted_text}), 200
     except Exception as e:
         app.logger.error("OCR failed for file: %s with error: %s", filename, str(e))
@@ -72,14 +107,9 @@ def ocr_license_plate():
 
 @cross_origin()
 @app.route("/@me", methods=["GET"])
+@login_required
 def get_current_user():
     user_id = session.get("user_id")
-    if not user_id:
-        app.logger.warning(
-            "Unauthorized /@me access attempt from IP: %s", request.remote_addr
-        )
-        return jsonify({"error": "Unauthorized"}), 401
-
     user = User.query.filter_by(id=user_id).first()
     if not user:
         app.logger.warning("User not found for session user_id: %s", user_id)
