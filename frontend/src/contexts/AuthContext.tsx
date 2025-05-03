@@ -39,11 +39,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   useEffect(() => {
     const fetchUser = async () => {
       const response = await getCurrentUser();
-      if (response.success && response.data?.user) {
+      if (response.success && (response.data?.id && response.data?.email)) {
         setAuthState((prev) => {
           return {
             ...prev,
-            user: response.data.user,
+            user: response.data,
             isAuthenticated: true,
             isLoading: false,
           };

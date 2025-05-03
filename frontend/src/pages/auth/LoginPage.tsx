@@ -125,8 +125,8 @@ const LoginPage: React.FC = () => {
             </div>
           </div>
 
-          <div className="flex items-center justify-between">
-            {/* <div className="flex items-center">
+          {/*<div className="flex items-center justify-between">
+             <div className="flex items-center">
               <input
                 id="remember-me"
                 name="remember-me"
@@ -139,7 +139,7 @@ const LoginPage: React.FC = () => {
               >
                 Remember me
               </label>
-            </div> */}
+            </div> 
 
             <div className="text-sm">
               <a
@@ -149,7 +149,7 @@ const LoginPage: React.FC = () => {
                 Forgot your password?
               </a>
             </div>
-          </div>
+          </div> */}
 
           <div>
             <button

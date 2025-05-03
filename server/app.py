@@ -216,12 +216,24 @@ def ocr_license_plate():
 @app.route("/logout", methods=["POST"])
 @login_required
 def logout():
-    user_id = session.pop("user_id", None)
+    user_id = session.get("user_id")  # Save before clearing
+    session.clear()  # Now it's safe to clear
+
+    response = jsonify({"message": "Logged out successfully"})
+    response.set_cookie(
+        key="session",
+        value="",
+        expires=0,
+        samesite="Lax",
+        secure=True,  # True in production
+    )
+
     if user_id:
         app.logger.info(f"User {user_id} logged out successfully")
     else:
         app.logger.warning("Logout attempt without active session")
-    return jsonify({"message": "Logged out successfully"}), 200
+
+    return response
 
 
 @cross_origin()

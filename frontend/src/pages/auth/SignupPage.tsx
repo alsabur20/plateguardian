@@ -93,7 +93,7 @@ const SignupPage: React.FC = () => {
 
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
           <div className="space-y-4">
-            <div>
+            {/*<div>
               <label htmlFor="name" className="form-label">
                 Full Name
               </label>
@@ -116,7 +116,7 @@ const SignupPage: React.FC = () => {
               {errors.name && (
                 <p className="mt-1 text-sm text-error">{errors.name}</p>
               )}
-            </div>
+            </div>*/}
 
             <div>
               <label htmlFor="email" className="form-label">
@@ -132,9 +132,8 @@ const SignupPage: React.FC = () => {
                   autoComplete="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className={`input-field pl-10 ${
-                    errors.email ? "border-error focus:ring-error/50" : ""
-                  }`}
+                  className={`input-field pl-10 ${errors.email ? "border-error focus:ring-error/50" : ""
+                    }`}
                   placeholder="your@email.com"
                 />
               </div>
@@ -157,9 +156,8 @@ const SignupPage: React.FC = () => {
                   autoComplete="new-password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className={`input-field pl-10 ${
-                    errors.password ? "border-error focus:ring-error/50" : ""
-                  }`}
+                  className={`input-field pl-10 ${errors.password ? "border-error focus:ring-error/50" : ""
+                    }`}
                   placeholder="••••••••"
                 />
               </div>
@@ -182,11 +180,10 @@ const SignupPage: React.FC = () => {
                   autoComplete="new-password"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
-                  className={`input-field pl-10 ${
-                    errors.confirmPassword
+                  className={`input-field pl-10 ${errors.confirmPassword
                       ? "border-error focus:ring-error/50"
                       : ""
-                  }`}
+                    }`}
                   placeholder="••••••••"
                 />
               </div>
