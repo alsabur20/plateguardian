@@ -64,7 +64,16 @@ def register():
     db.session.commit()
 
     session["user_id"] = new_user.id
-    return jsonify({"id": new_user.id, "email": new_user.email}), 201
+    return (
+        jsonify(
+            {
+                "id": new_user.id,
+                "email": new_user.email,
+                "sKey": session["server_pub_key"],
+            }
+        ),
+        201,
+    )
 
 
 @cross_origin()
@@ -81,7 +90,12 @@ def login():
         server_pub_key = load_server_public_key()
         session["server_pub_key"] = serialize_public_key(server_pub_key)
 
-        return jsonify({"id": user.id, "email": user.email}), 200
+        return (
+            jsonify(
+                {"id": user.id, "email": user.email, "sKey": session["server_pub_key"]}
+            ),
+            200,
+        )
 
     return jsonify({"error": "Unauthorized"}), 401
 
@@ -90,7 +104,7 @@ def login():
 @app.route("/key-exchange", methods=["POST"])
 @login_required
 def receive_user_pub_key():
-    pem_public_key = request.json.get("public_key")
+    pem_public_key = request.json.get("client_public_key")
 
     if not pem_public_key:
         return jsonify({"error": "Missing public key"}), 400

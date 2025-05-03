@@ -57,25 +57,16 @@ export const getCurrentUser = async () => {
   }
 };
 
-export const sendClientPublicKeyToServer = async (
-  serverPublicKeyPEM: string
-) => {
+export const sendClientPublicKeyToServer = async () => {
   try {
     const keypair = forge.pki.rsa.generateKeyPair({ bits: 2048, e: 0x10001 });
 
     const clientPublicKeyPEM = forge.pki.publicKeyToPem(keypair.publicKey);
     const clientPrivateKeyPEM = forge.pki.privateKeyToPem(keypair.privateKey);
 
-    const serverPublicKey = forge.pki.publicKeyFromPem(serverPublicKeyPEM);
-
-    const encrypted = serverPublicKey.encrypt(clientPublicKeyPEM, "RSA-OAEP", {
-      md: forge.md.sha256.create(),
-    });
-
-    const encryptedBase64 = forge.util.encode64(encrypted);
 
     const response = await api.post("/key-exchange", {
-      encrypted_key: encryptedBase64,
+      client_public_key: clientPublicKeyPEM,
     });
 
     return {
