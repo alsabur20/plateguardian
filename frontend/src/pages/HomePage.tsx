@@ -5,6 +5,7 @@ import { PlateResult } from "../types";
 import ImageUploader from "../components/plate/ImageUploader";
 import ResultCard from "../components/plate/ResultCard";
 import { recognizePlate, getPlateHistory } from "../services/plateService";
+import { useAuth } from "../contexts/AuthContext";
 import { toast } from "react-toastify";
 
 const HomePage: React.FC = () => {
@@ -28,7 +29,7 @@ const HomePage: React.FC = () => {
     setIsProcessing(true);
 
     try {
-      const response = await recognizePlate(file);
+      const response = await recognizePlate(file, "123123");
 
       if (response.success && response.data) {
         setResult(response.data);

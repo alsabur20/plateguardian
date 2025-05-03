@@ -5,7 +5,7 @@ import React, {
   useEffect,
   ReactNode,
 } from "react";
-import { User, AuthState } from "../types";
+import { AuthState } from "../types";
 import {
   loginUser,
   registerUser,
@@ -14,9 +14,9 @@ import {
 } from "../services/authService";
 import { toast } from "react-toastify";
 
-interface AuthContextType extends Omit<AuthState, "token"> {
+interface AuthContextType extends AuthState {
   login: (email: string, password: string) => Promise<boolean>;
-  signup: (email: string, password: string, name: string) => Promise<boolean>;
+  signup: (email: string, password: string) => Promise<boolean>;
   logout: () => void;
 }
 
@@ -27,10 +27,11 @@ interface AuthProviderProps {
 }
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
-  const [authState, setAuthState] = useState<Omit<AuthState, "token">>({
+  const [authState, setAuthState] = useState<AuthState>({
     user: null,
     isAuthenticated: false,
     isLoading: true,
+    sPublicKey: "",
   });
 
   useEffect(() => {
@@ -39,12 +40,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       if (response.success && response.data?.user) {
         setAuthState({
           user: response.data.user,
+          sPublicKey: response.data.sKey,
           isAuthenticated: true,
           isLoading: false,
         });
       } else {
         setAuthState({
           user: null,
+          sPublicKey: null,
           isAuthenticated: false,
           isLoading: false,
         });
@@ -61,6 +64,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         user: response.data,
         isAuthenticated: true,
         isLoading: false,
+        sPublicKey: "",
       });
       toast.success("Login successful");
       return true;
@@ -70,17 +74,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  const signup = async (
-    email: string,
-    password: string,
-    name: string
-  ): Promise<boolean> => {
-    const response = await registerUser(email, password, name);
+  const signup = async (email: string, password: string): Promise<boolean> => {
+    const response = await registerUser(email, password);
     if (response.success && response.data) {
       setAuthState({
         user: response.data,
         isAuthenticated: true,
         isLoading: false,
+        sPublicKey: "",
       });
       toast.success("Registration successful");
       return true;
@@ -96,6 +97,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       user: null,
       isAuthenticated: false,
       isLoading: false,
+      sPublicKey: "",
     });
     toast.success("Logged out successfully");
   };

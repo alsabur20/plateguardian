@@ -78,7 +78,7 @@ const Header: React.FC = () => {
                     className="text-gray-500 dark:text-gray-400"
                   />
                   <span className="text-sm text-gray-700 dark:text-gray-300">
-                    {user?.name || user?.email}
+                    {user?.email}
                   </span>
                 </div>
 
