@@ -1,6 +1,7 @@
 export interface User {
   id: string;
   email: string;
+  api: string;
   keyPair: {
     publicKey: string;
     privateKey: string;

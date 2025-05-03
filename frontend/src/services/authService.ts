@@ -1,5 +1,6 @@
 import axios from "axios";
 import forge from "node-forge";
+import { toast } from "react-toastify";
 
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || "http://localhost:5000",
@@ -64,7 +65,6 @@ export const sendClientPublicKeyToServer = async () => {
     const clientPublicKeyPEM = forge.pki.publicKeyToPem(keypair.publicKey);
     const clientPrivateKeyPEM = forge.pki.privateKeyToPem(keypair.privateKey);
 
-
     const response = await api.post("/key-exchange", {
       client_public_key: clientPublicKeyPEM,
     });
@@ -83,6 +83,38 @@ export const sendClientPublicKeyToServer = async () => {
       success: false,
       error:
         error?.response?.data?.error || "Key generation or exchange failed",
+    };
+  }
+};
+
+export const getEncryptedApiKey = async (privateKeyPem: string) => {
+  try {
+    const response = await api.get("/api-key");
+
+    const { encrypted_api_key } = response.data;
+
+    const encryptedBytes = forge.util.decode64(encrypted_api_key);
+
+    const privateKey = forge.pki.privateKeyFromPem(privateKeyPem);
+
+    const decrypted = privateKey.decrypt(encryptedBytes, "RSA-OAEP", {
+      md: forge.md.sha256.create(),
+    });
+
+    const [apiKey, timestamp] = decrypted.split("|");
+
+    return {
+      success: true,
+      data: {
+        apiKey,
+        timestamp,
+      },
+    };
+  } catch (error: any) {
+    console.error("Failed to retrieve or decrypt API key", error);
+    return {
+      success: false,
+      error: "Failed to retrieve or decrypt API key",
     };
   }
 };

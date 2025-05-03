@@ -12,6 +12,7 @@ import {
   logoutUser,
   getCurrentUser,
   sendClientPublicKeyToServer,
+  getEncryptedApiKey,
 } from "../services/authService";
 import { toast } from "react-toastify";
 
@@ -88,7 +89,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         sPublicKey: response.data.sKey,
       });
       await getKeyPair(response.data.sKey);
-      toast.success("Registration successful");
+      await toast.success("Registration successful");
       return true;
     } else {
       toast.error(response.error || "Registration failed");
@@ -109,14 +110,17 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const getKeyPair = async (sPublicKey: string) => {
     if (sPublicKey) {
-      const response = await sendClientPublicKeyToServer(sPublicKey);
+      const response = await sendClientPublicKeyToServer();
 
       if (response.success && response.data && response.clientKeyPair) {
+        const res = await getAPIKey();
+        if (!res) return;
         setAuthState((prev) => ({
           ...prev,
           user: prev.user
             ? {
                 ...prev.user,
+                api: res,
                 keyPair: {
                   publicKey: response.clientKeyPair.publicKeyPEM,
                   privateKey: response.clientKeyPair.privateKeyPEM,
@@ -125,6 +129,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             : {
                 id: "",
                 email: "",
+                api: "",
                 keyPair: {
                   publicKey: response.clientKeyPair.publicKeyPEM,
                   privateKey: response.clientKeyPair.privateKeyPEM,
@@ -134,6 +139,20 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       } else {
         console.error("Failed to send key to server or receive keypair");
       }
+    }
+  };
+
+  const getAPIKey = async () => {
+    if (!authState.user) {
+      return;
+    }
+    const response = await getEncryptedApiKey(
+      authState.user.keyPair.privateKey
+    );
+    if (response.success && response.data) {
+      return response.data.apiKey;
+    } else {
+      toast.error(response.error);
     }
   };
 
