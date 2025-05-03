@@ -176,3 +176,6 @@ cython_debug/
 server/temp_uploads
 *.crt
 *.key
+
+keys/
+*.pem
