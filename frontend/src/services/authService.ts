@@ -74,28 +74,13 @@ export const sendClientPublicKeyToServer = async (
 
     const encryptedBase64 = forge.util.encode64(encrypted);
 
-    const response = await fetch("http://localhost:5000/key-exchange", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      credentials: "include",
-      body: JSON.stringify({ encrypted_key: encryptedBase64 }),
+    const response = await api.post("/key-exchange", {
+      encrypted_key: encryptedBase64,
     });
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      return {
-        success: false,
-        error: errorData.error || "Failed to send public key",
-      };
-    }
-
-    const responseData = await response.json();
 
     return {
       success: true,
-      data: responseData,
+      data: response.data,
       clientKeyPair: {
         publicKeyPEM: clientPublicKeyPEM,
         privateKeyPEM: clientPrivateKeyPEM,
@@ -105,7 +90,8 @@ export const sendClientPublicKeyToServer = async (
     console.error("Key exchange error:", error);
     return {
       success: false,
-      error: "Key generation or exchange failed",
+      error:
+        error?.response?.data?.error || "Key generation or exchange failed",
     };
   }
 };

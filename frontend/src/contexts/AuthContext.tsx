@@ -69,7 +69,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         isLoading: false,
         sPublicKey: response.data.sKey,
       });
-      await getKeyPair();
+      await getKeyPair(response.data.sKey);
       toast.success("Login successful");
       return true;
     } else {
@@ -87,7 +87,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         isLoading: false,
         sPublicKey: response.data.sKey,
       });
-      await getKeyPair();
+      await getKeyPair(response.data.sKey);
       toast.success("Registration successful");
       return true;
     } else {
@@ -107,9 +107,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     toast.success("Logged out successfully");
   };
 
-  const getKeyPair = async () => {
-    if (authState.sPublicKey) {
-      const response = await sendClientPublicKeyToServer(authState.sPublicKey);
+  const getKeyPair = async (sPublicKey: string) => {
+    if (sPublicKey) {
+      const response = await sendClientPublicKeyToServer(sPublicKey);
 
       if (response.success && response.data && response.clientKeyPair) {
         setAuthState((prev) => ({
