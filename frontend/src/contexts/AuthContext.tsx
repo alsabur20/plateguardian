@@ -62,19 +62,22 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   }, []);
 
   const login = async (email: string, password: string): Promise<boolean> => {
-    const response = await loginUser(email, password);
-    if (response.success && response.data) {
-      setAuthState({
-        user: response.data,
-        isAuthenticated: true,
-        isLoading: false,
-        sPublicKey: response.data.sKey,
-      });
-      await getKeyPair(response.data.sKey);
-      toast.success("Login successful");
-      return true;
-    } else {
-      toast.error(response.error || "Login failed");
+    try {
+      const response = await loginUser(email, password);
+      if (response.success && response.data) {
+        setAuthState({
+          user: response.data,
+          isAuthenticated: true,
+          isLoading: false,
+          sPublicKey: response.data.sKey,
+        });
+        await getKeyPair(response.data.sKey);
+        toast.success("Login successful");
+        return true;
+      }
+      throw new Error(response.error);
+    } catch (error) {
+      toast.error("Login failed");
       return false;
     }
   };
@@ -109,66 +112,80 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   const getKeyPair = async (sPublicKey: string) => {
-    if (sPublicKey) {
+    if (!sPublicKey) return;
+
+    try {
       const response = await sendClientPublicKeyToServer();
-
-      if (response.success && response.data && response.clientKeyPair) {
-        const res = await getAPIKey();
-        if (!res) return;
-        setAuthState((prev) => {
-          // Transform the incoming res object to match your User interface
-          const transformedApiKey = {
-            timestamp: res.timestamp,
-            api: res.apiKey, // Map the apiKey string to the api property
-          };
-
-          if (prev.user) {
-            return {
-              ...prev,
-              user: {
-                ...prev.user,
-                apiKey: transformedApiKey, // Use the transformed object
-                keyPair: {
-                  publicKey: response.clientKeyPair.publicKeyPEM,
-                  privateKey: response.clientKeyPair.privateKeyPEM,
-                },
-              },
-            };
-          }
-
-          return {
-            ...prev,
-            user: {
-              id: "",
-              email: "",
-              apiKey: transformedApiKey,
-              keyPair: {
-                publicKey: response.clientKeyPair.publicKeyPEM,
-                privateKey: response.clientKeyPair.privateKeyPEM,
-              },
-            },
-          };
-        });
-      } else {
-        console.error("Failed to send key to server or receive keypair");
+      if (!response.success || !response.clientKeyPair) {
+        throw new Error("Failed to get key pair from server");
       }
+
+      // First update the state with the key pair
+      setAuthState((prev) => {
+        if (!prev.user) {
+          // If no user exists, we can't proceed - this should theoretically never happen
+          // because getKeyPair is called after login/signup which sets the user
+          console.error("No user available to associate key pair with");
+          return prev;
+        }
+
+        return {
+          ...prev,
+          user: {
+            ...prev.user,
+            keyPair: {
+              publicKey: response.clientKeyPair.publicKeyPEM,
+              privateKey: response.clientKeyPair.privateKeyPEM,
+            },
+          },
+        };
+      });
+
+      // Now get the API key using the updated state
+      const apiKeyResponse = await getAPIKey(
+        response.clientKeyPair.privateKeyPEM
+      );
+      if (!apiKeyResponse) {
+        throw new Error("Failed to get API key");
+      }
+
+      // Finally update with the API key
+      setAuthState((prev) => {
+        if (!prev.user) {
+          console.error("No user available to associate API key with");
+          return prev;
+        }
+
+        return {
+          ...prev,
+          user: {
+            ...prev.user,
+            apiKey: {
+              timestamp: apiKeyResponse.timestamp,
+              api: apiKeyResponse.apiKey,
+            },
+          },
+        };
+      });
+    } catch (error) {
+      console.error("Error in key pair process:", error);
+      toast.error("Failed to complete cryptographic setup");
     }
   };
 
-  const getAPIKey = async () => {
-    if (!authState.user) {
-      return;
-    }
-    const response = await getEncryptedApiKey(
-      authState.user.keyPair.privateKey
-    );
-    if (response.success && response.data) {
-      return response.data;
-    } else {
-      toast.error(response.error);
+  const getAPIKey = async (privateKey: string) => {
+    try {
+      const response = await getEncryptedApiKey(privateKey);
+      if (response.success && response.data) {
+        return response.data;
+      }
+      throw new Error(response.error || "Failed to get encrypted API key");
+    } catch (error) {
+      console.error("Error getting API key:", error);
+      toast.error("Failed to retrieve API key");
+      return null;
     }
   };
-
   return (
     <AuthContext.Provider
       value={{

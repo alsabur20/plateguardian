@@ -37,7 +37,10 @@ export const recognizePlate = async (
       },
     });
 
-    return res.data;
+    return {
+      success: true,
+      data: res.data,
+    };
   } catch (error) {
     console.error("recognizePlate error:", error);
     return { error: "Failed to extract plate" };
@@ -47,7 +50,7 @@ export const recognizePlate = async (
 export const getPlateHistory = async () => {
   try {
     const res = await api.get("/history");
-    return res.data; // array of { image_name, extracted_text, timestamp }
+    return res.data;
   } catch (error) {
     return { error: "Failed to fetch history" };
   }

@@ -1,46 +1,37 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { motion } from "framer-motion";
-import { History } from "lucide-react";
 import { PlateResult } from "../types";
 import ImageUploader from "../components/plate/ImageUploader";
 import ResultCard from "../components/plate/ResultCard";
-import { recognizePlate, getPlateHistory } from "../services/plateService";
+import { recognizePlate } from "../services/plateService";
 import { useAuth } from "../contexts/AuthContext";
 import { toast } from "react-toastify";
 
 const HomePage: React.FC = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [result, setResult] = useState<PlateResult | null>(null);
-  const [history, setHistory] = useState<PlateResult[]>([]);
-  const [showHistory, setShowHistory] = useState(false);
-
   const { user, sPublicKey } = useAuth();
-
-  useEffect(() => {
-    // const fetchHistory = async () => {
-    //   const response = await getPlateHistory();
-    //   if (response.success && response.data) {
-    //     setHistory(response.data);
-    //   }
-    // };
-    // fetchHistory();
-  }, []);
 
   const handleImageUpload = async (file: File) => {
     setIsProcessing(true);
 
-    if (!user || !sPublicKey) return;
+    if (!user?.apiKey || !sPublicKey) {
+      toast.error("Authentication required");
+      setIsProcessing(false);
+      return;
+    }
 
     try {
       const response = await recognizePlate(file, user.apiKey, sPublicKey);
 
       if (response.success && response.data) {
-        setResult(response.data);
-        setHistory((prev) => {
-          if (!prev.find((item) => item.id === response.data!.id)) {
-            return [response.data!, ...prev];
-          }
-          return prev;
+        console.log(response);
+        setResult({
+          id: "5",
+          imageUrl: URL.createObjectURL(file), // Create URL from uploaded file
+          extractedText: response.data.extracted_text,
+          timestamp: new Date(),
+          userId: "",
         });
       } else {
         toast.error(response.error || "Failed to process image");
@@ -50,11 +41,6 @@ const HomePage: React.FC = () => {
     } finally {
       setIsProcessing(false);
     }
-  };
-
-  const handleSelectFromHistory = (item: PlateResult) => {
-    setResult(item);
-    setShowHistory(false);
   };
 
   return (
@@ -74,59 +60,9 @@ const HomePage: React.FC = () => {
           transition={{ duration: 0.5, delay: 0.2 }}
           className="text-gray-600 dark:text-gray-400 max-w-2xl mx-auto"
         >
-          Upload an image containing a license plate, and we'll extract the text
-          for you. Get accurate results in seconds.
+          Upload an image containing a license plate to extract the text
         </motion.p>
       </div>
-
-      <div className="flex justify-end mb-4">
-        <button
-          onClick={() => setShowHistory(!showHistory)}
-          className="inline-flex items-center text-gray-700 dark:text-gray-300 hover:text-primary dark:hover:text-primary"
-        >
-          <History size={18} className="mr-1" />
-          {showHistory ? "Hide History" : "View History"}
-        </button>
-      </div>
-
-      {showHistory && history.length > 0 && (
-        <motion.div
-          initial={{ opacity: 0, height: 0 }}
-          animate={{ opacity: 1, height: "auto" }}
-          exit={{ opacity: 0, height: 0 }}
-          transition={{ duration: 0.3 }}
-          className="mb-8 overflow-hidden"
-        >
-          <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-200 mb-4">
-            Recent Scans
-          </h2>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-            {history.map((item) => (
-              <div
-                key={item.id}
-                onClick={() => handleSelectFromHistory(item)}
-                className="cursor-pointer rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 hover:border-primary dark:hover:border-primary transition-colors duration-200"
-              >
-                <div className="aspect-w-16 aspect-h-9 bg-gray-100 dark:bg-gray-800">
-                  <img
-                    src={item.imageUrl}
-                    alt="License plate"
-                    className="object-cover w-full h-full"
-                  />
-                </div>
-                <div className="p-2 text-center">
-                  <div className="font-mono text-sm font-medium text-gray-800 dark:text-gray-200">
-                    {item.extractedText}
-                  </div>
-                  <div className="text-xs text-gray-500 dark:text-gray-400">
-                    {new Date(item.timestamp).toLocaleDateString()}
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </motion.div>
-      )}
 
       <ImageUploader
         onImageUpload={handleImageUpload}
@@ -134,11 +70,27 @@ const HomePage: React.FC = () => {
       />
 
       {result && !isProcessing && (
-        <ResultCard
-          imageUrl={result.imageUrl}
-          extractedText={result.extractedText}
-          confidence={result.confidence}
-        />
+        <div className="mt-8">
+          <div className="flex flex-col md:flex-row gap-8 items-center justify-center">
+            <div className="w-full md:w-1/2">
+              <img
+                src={result.imageUrl}
+                alt="Uploaded license plate"
+                className="rounded-lg shadow-md w-full max-h-96 object-contain"
+              />
+            </div>
+            <div className="w-full md:w-1/2">
+              <h2 className="text-2xl font-bold mb-4 text-gray-800 dark:text-gray-200">
+                Extracted Text
+              </h2>
+              <div className="p-6 bg-white dark:bg-gray-800 rounded-lg shadow-md">
+                <p className="text-3xl font-mono font-bold text-center text-gray-900 dark:text-white">
+                  {result.extractedText}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
 
       {!result && !isProcessing && (
