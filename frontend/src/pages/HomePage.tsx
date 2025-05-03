@@ -14,7 +14,7 @@ const HomePage: React.FC = () => {
   const [history, setHistory] = useState<PlateResult[]>([]);
   const [showHistory, setShowHistory] = useState(false);
 
-  const { user } = useAuth();
+  const { user, sPublicKey } = useAuth();
 
   useEffect(() => {
     // const fetchHistory = async () => {
@@ -29,10 +29,10 @@ const HomePage: React.FC = () => {
   const handleImageUpload = async (file: File) => {
     setIsProcessing(true);
 
-    if (!user) return;
+    if (!user || !sPublicKey) return;
 
     try {
-      const response = await recognizePlate(file, user.api);
+      const response = await recognizePlate(file, user.apiKey, sPublicKey);
 
       if (response.success && response.data) {
         setResult(response.data);

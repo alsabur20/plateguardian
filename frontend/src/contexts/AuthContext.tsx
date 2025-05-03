@@ -115,27 +115,40 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       if (response.success && response.data && response.clientKeyPair) {
         const res = await getAPIKey();
         if (!res) return;
-        setAuthState((prev) => ({
-          ...prev,
-          user: prev.user
-            ? {
+        setAuthState((prev) => {
+          // Transform the incoming res object to match your User interface
+          const transformedApiKey = {
+            timestamp: res.timestamp,
+            api: res.apiKey, // Map the apiKey string to the api property
+          };
+
+          if (prev.user) {
+            return {
+              ...prev,
+              user: {
                 ...prev.user,
-                api: res,
-                keyPair: {
-                  publicKey: response.clientKeyPair.publicKeyPEM,
-                  privateKey: response.clientKeyPair.privateKeyPEM,
-                },
-              }
-            : {
-                id: "",
-                email: "",
-                api: "",
+                apiKey: transformedApiKey, // Use the transformed object
                 keyPair: {
                   publicKey: response.clientKeyPair.publicKeyPEM,
                   privateKey: response.clientKeyPair.privateKeyPEM,
                 },
               },
-        }));
+            };
+          }
+
+          return {
+            ...prev,
+            user: {
+              id: "",
+              email: "",
+              apiKey: transformedApiKey,
+              keyPair: {
+                publicKey: response.clientKeyPair.publicKeyPEM,
+                privateKey: response.clientKeyPair.privateKeyPEM,
+              },
+            },
+          };
+        });
       } else {
         console.error("Failed to send key to server or receive keypair");
       }
@@ -150,7 +163,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       authState.user.keyPair.privateKey
     );
     if (response.success && response.data) {
-      return response.data.apiKey;
+      return response.data;
     } else {
       toast.error(response.error);
     }
