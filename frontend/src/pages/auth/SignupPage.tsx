@@ -1,11 +1,10 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Mail, Lock, User, UserPlus } from "lucide-react";
+import { Mail, Lock, UserPlus } from "lucide-react";
 import { useAuth } from "../../contexts/AuthContext";
 
 const SignupPage: React.FC = () => {
-  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -20,7 +19,6 @@ const SignupPage: React.FC = () => {
   const { signup, isAuthenticated } = useAuth();
   const navigate = useNavigate();
 
-  // Redirect if already authenticated
   React.useEffect(() => {
     if (isAuthenticated) {
       navigate("/home");
@@ -34,10 +32,6 @@ const SignupPage: React.FC = () => {
       password?: string;
       confirmPassword?: string;
     } = {};
-
-    if (!name.trim()) {
-      newErrors.name = "Name is required";
-    }
 
     if (!email.trim()) {
       newErrors.email = "Email is required";
@@ -67,7 +61,7 @@ const SignupPage: React.FC = () => {
     setIsLoading(true);
 
     try {
-      const success = await signup(email, password, name);
+      const success = await signup(email, password);
       if (success) {
         navigate("/home");
       }
@@ -132,8 +126,9 @@ const SignupPage: React.FC = () => {
                   autoComplete="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className={`input-field pl-10 ${errors.email ? "border-error focus:ring-error/50" : ""
-                    }`}
+                  className={`input-field pl-10 ${
+                    errors.email ? "border-error focus:ring-error/50" : ""
+                  }`}
                   placeholder="your@email.com"
                 />
               </div>
@@ -156,8 +151,9 @@ const SignupPage: React.FC = () => {
                   autoComplete="new-password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className={`input-field pl-10 ${errors.password ? "border-error focus:ring-error/50" : ""
-                    }`}
+                  className={`input-field pl-10 ${
+                    errors.password ? "border-error focus:ring-error/50" : ""
+                  }`}
                   placeholder="••••••••"
                 />
               </div>
@@ -180,10 +176,11 @@ const SignupPage: React.FC = () => {
                   autoComplete="new-password"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
-                  className={`input-field pl-10 ${errors.confirmPassword
+                  className={`input-field pl-10 ${
+                    errors.confirmPassword
                       ? "border-error focus:ring-error/50"
                       : ""
-                    }`}
+                  }`}
                   placeholder="••••••••"
                 />
               </div>
