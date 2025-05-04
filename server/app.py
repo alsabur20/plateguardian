@@ -67,6 +67,9 @@ def register():
     app.logger.info(f"User registered successfully: {email} (ID: {new_user.id})")
 
     session["user_id"] = new_user.id
+    # Store server public key in session
+    server_pub_key = load_server_public_key()
+    session["server_pub_key"] = serialize_public_key(server_pub_key)
     return (
         jsonify(
             {
@@ -173,7 +176,7 @@ def ocr_license_plate():
 
         app.logger.info(f"Decrypted API key timestamp: {timestamp_str}")
 
-        if datetime.utcnow() - timestamp > timedelta(minutes=1):
+        if datetime.utcnow() - timestamp > timedelta(minutes=20):
             app.logger.warning(f"API key expired | Provided: {timestamp_str}")
             return jsonify({"error": "API key expired"}), 403
 
